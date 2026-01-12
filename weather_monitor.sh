@@ -266,9 +266,7 @@ cleanup() {
 trap cleanup SIGINT
 
 while true; do
-    # Clear screen and move to top
-    echo -ne "\033[2J\033[H"
-    
+    # Show loading status
     echo "天気情報を取得中..."
     
     DATA=$(curl -s --max-time 10 "$WEATHER_URL")
