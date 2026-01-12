@@ -86,6 +86,37 @@ fi
 # ASCII Art Functions
 # -----------------------------------------------------------------------------
 
+function show_banner() {
+    # Colors
+    local C_CYAN="\033[0;36m"
+    local C_BLUE="\033[0;34m"
+    local C_YELLOW="\033[1;33m"
+    local C_GREEN="\033[1;32m"
+    local C_RESET="\033[0m"
+
+    # Clear screen
+    echo -ne "\033[2J\033[H"
+
+    echo -e "${C_CYAN}"
+    cat << "EOF"
+  _       __           __  __                 
+ | |     / /__  ____ _/ /_/ /_  ___  _____    
+ | | /| / / _ \/ __ `/ __/ __ \/ _ \/ ___/    
+ | |/ |/ /  __/ /_/ / /_/ / / /  __/ /        
+ |__/|__/\___/\__,_/\__/_/ /_/\___/_/         
+    __  ___            _ __                   
+   /  |/  /___  ____  (_) /_____  _____       
+  / /|_/ / __ \/ __ \/ / __/ __ \/ ___/       
+ / /  / / /_/ / / / / / /_/ /_/ / /           
+/_/  /_/\____/_/ /_/_/\__/\____/_/            
+                                              
+EOF
+    echo -e "${C_YELLOW}        >>> Weather Monitor v${VERSION} <<<${C_RESET}"
+    echo -e "${C_GREEN}    Designed for clear skies and happy days.${C_RESET}"
+    echo ""
+    sleep 2
+}
+
 function draw_sunny() {
     cat << "EOF"
       \   /
@@ -264,6 +295,9 @@ cleanup() {
 }
 
 trap cleanup SIGINT
+
+# Show startup banner
+show_banner
 
 while true; do
     # Show loading status
