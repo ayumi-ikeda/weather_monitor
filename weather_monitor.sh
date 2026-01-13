@@ -4,7 +4,7 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="1.0.0"
+VERSION="1.0.1"
 INTERVAL=0
 
 # -----------------------------------------------------------------------------
@@ -306,17 +306,18 @@ while true; do
     DATA=$(curl -s --max-time 10 "$WEATHER_URL")
     
     # Validate if we got JSON
-    if [[ -z "$DATA" ]] || [[ "${DATA:0:1}" != "{" ]]; then
+    # Validate if we got JSON and check for parse errors
+    if [[ -z "$DATA" ]] || [[ "${DATA:0:1}" != "{" ]] || ! echo "$DATA" | jq empty > /dev/null 2>&1; then
         echo -ne "\033[2J\033[H"
-        echo "データの取得に失敗しました (Network Error or Invalid Response)"
-        echo "再試行まで待機中... (${INTERVAL}秒)"
+        echo "データの取得に失敗、またはデータが破損しています"
+        echo "再試行まで待機中... (1秒)"
+        sleep 1
     else
         echo -ne "\033[2J\033[H"
         process_weather "$DATA"
         echo ""
         echo "最終更新: $(date '+%H:%M:%S')"
         echo "(終了: Ctrl+C)"
+        sleep "$INTERVAL"
     fi
-    
-    sleep "$INTERVAL"
 done
