@@ -6,6 +6,7 @@
 
 VERSION="1.0.1"
 INTERVAL=0
+ONCE=false
 
 # -----------------------------------------------------------------------------
 # Help and Version Functions
@@ -17,8 +18,9 @@ function show_help() {
     echo "指定した間隔で天気情報をポーリングし、ターミナルに表示します。"
     echo ""
     echo "オプション:"
-    echo "  -i, --interval SECONDS   更新間隔（秒）。必須項目です。"
-    echo "  -h, --help               このヘルプを表示して終了します。"
+    echo "  -i, --interval SECONDS   更新間隔（秒）。必須項目です（--once 指定時は不要）。
+  -o, --once               1回だけ表示して終了します（エラー時はリトライします）。
+  -h, --help               このヘルプを表示して終了します。"
     echo "  -v, --version            バージョン情報を表示して終了します。"
     echo ""
     echo "例:"
@@ -60,6 +62,10 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
+        -o|--once)
+            ONCE=true
+            shift
+            ;;
         -h|--help)
             show_help
             exit 0
@@ -76,10 +82,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [ "$INTERVAL" -eq 0 ]; then
+if [ "$ONCE" = false ] && [ "$INTERVAL" -eq 0 ]; then
     echo "エラー: 更新間隔を指定してください。"
     echo "ヘルプを表示するには -h を使用してください。"
-    exit 0
+    exit 1
 fi
 
 # -----------------------------------------------------------------------------
@@ -317,6 +323,11 @@ while true; do
         process_weather "$DATA"
         echo ""
         echo "最終更新: $(date '+%H:%M:%S')"
+        
+        if [ "$ONCE" = true ]; then
+            exit 0
+        fi
+
         echo "(終了: Ctrl+C)"
         sleep "$INTERVAL"
     fi
