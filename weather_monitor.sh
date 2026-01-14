@@ -222,12 +222,12 @@ function process_weather() {
     if [[ "$desc_lower" =~ "sun" ]] || [[ "$desc_lower" =~ "clear" ]]; then
         draw_sunny
         category_ja="晴れ"
-    elif [[ "$desc_lower" =~ "rain" ]] || [[ "$desc_lower" =~ "drizzle" ]] || [[ "$desc_lower" =~ "shower" ]] || [[ "$desc_lower" =~ "thunder" ]]; then
-        draw_rainy
-        category_ja="雨"
     elif [[ "$desc_lower" =~ "snow" ]] || [[ "$desc_lower" =~ "ice" ]] || [[ "$desc_lower" =~ "blizzard" ]] || [[ "$desc_lower" =~ "sleet" ]]; then
         draw_snowy
         category_ja="雪"
+    elif [[ "$desc_lower" =~ "rain" ]] || [[ "$desc_lower" =~ "drizzle" ]] || [[ "$desc_lower" =~ "shower" ]] || [[ "$desc_lower" =~ "thunder" ]]; then
+        draw_rainy
+        category_ja="雨"
     else
         # Default fallback for Cloudy, Mist, Fog, Overcast
         draw_cloudy
