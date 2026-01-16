@@ -8,23 +8,45 @@ VERSION="1.1.0"
 INTERVAL=0
 ONCE=false
 
+# Check Language Environment
+if [[ "${LANG:-}" == ja* ]]; then
+    IS_JP=true
+else
+    IS_JP=false
+fi
+
 # -----------------------------------------------------------------------------
 # Help and Version Functions
 # -----------------------------------------------------------------------------
 
 function show_help() {
-    echo "使用方法: $(basename "$0") [オプション]"
-    echo ""
-    echo "指定した間隔で天気情報をポーリングし、ターミナルに表示します。"
-    echo ""
-    echo "オプション:"
-    echo "  -i, --interval SECONDS   更新間隔（秒）。必須項目です（--once 指定時は不要）。
-  -o, --once               1回だけ表示して終了します（エラー時はリトライします）。
-  -h, --help               このヘルプを表示して終了します。"
-    echo "  -v, --version            バージョン情報を表示して終了します。"
-    echo ""
-    echo "例:"
-    echo "  $(basename "$0") --interval 60"
+    if [ "$IS_JP" = true ]; then
+        echo "使用方法: $(basename "$0") [オプション]"
+        echo ""
+        echo "指定した間隔で天気情報をポーリングし、ターミナルに表示します。"
+        echo ""
+        echo "オプション:"
+        echo "  -i, --interval SECONDS   更新間隔（秒）。必須項目です（--once 指定時は不要）。"
+        echo "  -o, --once               1回だけ表示して終了します（エラー時はリトライします）。"
+        echo "  -h, --help               このヘルプを表示して終了します。"
+        echo "  -v, --version            バージョン情報を表示して終了します。"
+        echo ""
+        echo "例:"
+        echo "  $(basename "$0") --interval 60"
+    else
+        echo "Usage: $(basename "$0") [OPTIONS]"
+        echo ""
+        echo "Polls weather information at specified intervals and displays it in the terminal."
+        echo ""
+        echo "Options:"
+        echo "  -i, --interval SECONDS   Update interval in seconds. Required (unless --once is used)."
+        echo "  -o, --once               Display once and exit (retry on error)."
+        echo "  -h, --help               Display this help and exit."
+        echo "  -v, --version            Display version information and exit."
+        echo ""
+        echo "Example:"
+        echo "  $(basename "$0") --interval 60"
+    fi
 }
 
 function show_version() {
@@ -37,7 +59,11 @@ function show_version() {
 
 for cmd in curl jq bc; do
     if ! command -v $cmd &> /dev/null; then
-        echo "エラー: 必要なコマンド '$cmd' が見つかりません。インストールしてください。"
+        if [ "$IS_JP" = true ]; then
+            echo "エラー: 必要なコマンド '$cmd' が見つかりません。インストールしてください。"
+        else
+            echo "Error: Required command '$cmd' not found. Please install it."
+        fi
         exit 1
     fi
 done
@@ -58,7 +84,11 @@ while [[ $# -gt 0 ]]; do
                 INTERVAL="$2"
                 shift 2
             else
-                echo "エラー: --interval には正の整数を指定してください。"
+                if [ "$IS_JP" = true ]; then
+                    echo "エラー: --interval には正の整数を指定してください。"
+                else
+                    echo "Error: Please specify a positive integer for --interval."
+                fi
                 exit 1
             fi
             ;;
@@ -75,7 +105,11 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            echo "不明なオプション: $1"
+            if [ "$IS_JP" = true ]; then
+                echo "不明なオプション: $1"
+            else
+                echo "Unknown option: $1"
+            fi
             show_help
             exit 1
             ;;
@@ -83,8 +117,13 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ "$ONCE" = false ] && [ "$INTERVAL" -eq 0 ]; then
-    echo "エラー: 更新間隔を指定してください。"
-    echo "ヘルプを表示するには -h を使用してください。"
+    if [ "$IS_JP" = true ]; then
+        echo "エラー: 更新間隔を指定してください。"
+        echo "ヘルプを表示するには -h を使用してください。"
+    else
+        echo "Error: Please specify an update interval."
+        echo "Use -h for help."
+    fi
     exit 1
 fi
 
@@ -124,27 +163,33 @@ EOF
 }
 
 function draw_sunny() {
-    cat << "EOF"
+    local label="SUNNY"
+    [ "$IS_JP" = true ] && label=" 晴れ "
+    cat << EOF
       \   /
-       .-.       [ 晴れ ]
+       .-.       [ $label ]
     -- (   ) --
-       `-’
+       \`-’
       /   \
 EOF
 }
 
 function draw_cloudy() {
-    cat << "EOF"
+    local label="CLOUDY"
+    [ "$IS_JP" = true ] && label=" 曇り "
+    cat << EOF
       .--.
-   .-(    ).     [ 曇り ]
+   .-(    ).     [ $label ]
   (___.__)__)
 EOF
 }
 
 function draw_rainy() {
-    cat << "EOF"
+    local label=" RAIN "
+    [ "$IS_JP" = true ] && label="  雨  "
+    cat << EOF
       .--.
-   .-(    ).     [ 雨 ]
+   .-(    ).     [ $label ]
   (___.__)__)
    ' ' ' '
     ' ' ' '
@@ -152,9 +197,11 @@ EOF
 }
 
 function draw_snowy() {
-    cat << "EOF"
+    local label=" SNOW "
+    [ "$IS_JP" = true ] && label="  雪  "
+    cat << EOF
       .--.
-   .-(    ).     [ 雪 ]
+   .-(    ).     [ $label ]
   (___.__)__)
    *  *  *
     *  *  *
@@ -165,8 +212,13 @@ EOF
 # Weather Logic
 # -----------------------------------------------------------------------------
 
-# wttr.in with JSON output and Japanese language
-WEATHER_URL="https://wttr.in/?format=j1&lang=ja"
+# wttr.in with JSON output
+# If Japanese, request localized. Otherwise default (English).
+if [ "$IS_JP" = true ]; then
+    WEATHER_URL="https://wttr.in/?format=j1&lang=ja"
+else
+    WEATHER_URL="https://wttr.in/?format=j1&lang=en"
+fi
 
 # Function to check and display warnings in RED
 function check_warnings() {
@@ -178,24 +230,40 @@ function check_warnings() {
     
     # Keywords for severe weather in English description
     if [[ "$desc" =~ "Heavy" ]] || [[ "$desc" =~ "Storm" ]] || [[ "$desc" =~ "Blizzard" ]] || [[ "$desc" =~ "Thunder" ]] || [[ "$desc" =~ "Torrential" ]]; then
-        echo -e "\033[91m[警報] 激しい天候が検出されました: $desc\033[0m"
+        if [ "$IS_JP" = true ]; then
+            echo -e "\033[91m[警報] 激しい天候が検出されました: $desc\033[0m"
+        else
+            echo -e "\033[91m[WARNING] Severe weather detected: $desc\033[0m"
+        fi
         has_warning=1
     fi
     
     # Heavy Rain warning (> 15mm)
     if (( $(echo "$precip >= 15.0" | bc -l) )); then
-        echo -e "\033[91m[注意] 激しい雨が降っています: ${precip}mm\033[0m"
+        if [ "$IS_JP" = true ]; then
+            echo -e "\033[91m[注意] 激しい雨が降っています: ${precip}mm\033[0m"
+        else
+            echo -e "\033[91m[CAUTION] Heavy rain: ${precip}mm\033[0m"
+        fi
         has_warning=1
     fi
 
     # Strong Wind warning (> 50km/h)
     if (( $(echo "$wind >= 50.0" | bc -l) )); then
-        echo -e "\033[91m[注意] 強風が吹いています: ${wind} km/h\033[0m"
+        if [ "$IS_JP" = true ]; then
+            echo -e "\033[91m[注意] 強風が吹いています: ${wind} km/h\033[0m"
+        else
+            echo -e "\033[91m[CAUTION] Strong wind: ${wind} km/h\033[0m"
+        fi
         has_warning=1
     fi
     
     if [ $has_warning -eq 1 ]; then
-        echo -e "\033[91m最新の気象情報に注意してください。\033[0m"
+        if [ "$IS_JP" = true ]; then
+            echo -e "\033[91m最新の気象情報に注意してください。\033[0m"
+        else
+            echo -e "\033[91mPlease stay updated with the latest weather info.\033[0m"
+        fi
     fi
 }
 
@@ -207,13 +275,20 @@ function process_weather() {
     local location=$(echo "$json" | jq -r '.nearest_area[0].areaName[0].value')
 
     if [ "$current" == "null" ]; then
-        echo "天気情報の解析に失敗しました。"
+        if [ "$IS_JP" = true ]; then
+            echo "天気情報の解析に失敗しました。"
+        else
+            echo "Failed to parse weather information."
+        fi
         return
     fi
     
     # Extract Data
     local desc_en=$(echo "$current" | jq -r '.weatherDesc[0].value')
-    local desc_ja=$(echo "$current" | jq -r '.lang_ja[0].value')
+    local desc_ja=""
+    if [ "$IS_JP" = true ]; then
+        desc_ja=$(echo "$current" | jq -r '.lang_ja[0].value')
+    fi
     local temp=$(echo "$current" | jq -r '.temp_C')
     local precip=$(echo "$current" | jq -r '.precipMM')
     local humidity=$(echo "$current" | jq -r '.humidity')
@@ -222,53 +297,87 @@ function process_weather() {
     
     # Determine Category
     local desc_lower=$(echo "$desc_en" | tr '[:upper:]' '[:lower:]')
-    local category_ja=""
+    local category=""
+    local category_label=""
     
     # Basic logic to map description to 4 categories
     if [[ "$desc_lower" =~ "sun" ]] || [[ "$desc_lower" =~ "clear" ]]; then
         draw_sunny
-        category_ja="晴れ"
+        category="SUNNY"
+        if [ "$IS_JP" = true ]; then category_label="晴れ"; else category_label="Sunny"; fi
     elif [[ "$desc_lower" =~ "snow" ]] || [[ "$desc_lower" =~ "ice" ]] || [[ "$desc_lower" =~ "blizzard" ]] || [[ "$desc_lower" =~ "sleet" ]]; then
         draw_snowy
-        category_ja="雪"
+        category="SNOW"
+        if [ "$IS_JP" = true ]; then category_label="雪"; else category_label="Snow"; fi
     elif [[ "$desc_lower" =~ "rain" ]] || [[ "$desc_lower" =~ "drizzle" ]] || [[ "$desc_lower" =~ "shower" ]] || [[ "$desc_lower" =~ "thunder" ]]; then
         draw_rainy
-        category_ja="雨"
+        category="RAIN"
+        if [ "$IS_JP" = true ]; then category_label="雨"; else category_label="Rain"; fi
     else
         # Default fallback for Cloudy, Mist, Fog, Overcast
         draw_cloudy
-        category_ja="曇り"
+        category="CLOUDY"
+        if [ "$IS_JP" = true ]; then category_label="曇り"; else category_label="Cloudy"; fi
     fi
     
     echo "========================================"
-    echo " 現在の天気: $category_ja"
-    echo " 詳細: $desc_ja"
-    echo "----------------------------------------"
-    echo " 地点: $location"
-    echo " 気温: ${temp}℃"
-    echo " 湿度: ${humidity}%"
-    echo " 風速: ${wind} km/h"
-    echo " 気圧: ${pressure} hPa"
+    if [ "$IS_JP" = true ]; then
+        echo " 現在の天気: $category_label"
+        echo " 詳細: $desc_ja"
+        echo "----------------------------------------"
+        echo " 地点: $location"
+        echo " 気温: ${temp}℃"
+        echo " 湿度: ${humidity}%"
+        echo " 風速: ${wind} km/h"
+        echo " 気圧: ${pressure} hPa"
+    else
+        echo " Current Weather: $category_label"
+        echo " Detail: $desc_en"
+        echo "----------------------------------------"
+        echo " Location: $location"
+        echo " Temp: ${temp}C"
+        echo " Humidity: ${humidity}%"
+        echo " Wind: ${wind} km/h"
+        echo " Pressure: ${pressure} hPa"
+    fi
     
     # Text details based on category
-    if [[ "$category_ja" == "雨" ]]; then
-        echo " 降水量: ${precip} mm"
-        if (( $(echo "$precip < 2.0" | bc -l) )); then
-             echo " 強度: バラツキあり/小雨"
-        elif (( $(echo "$precip < 8.0" | bc -l) )); then
-             echo " 強度: 通常の雨"
+    if [[ "$category" == "RAIN" ]]; then
+        if [ "$IS_JP" = true ]; then
+            echo " 降水量: ${precip} mm"
         else
-             echo " 強度: 大雨"
+            echo " Precip: ${precip} mm"
         fi
-    elif [[ "$category_ja" == "雪" ]]; then
-        echo " 降水量(水換算): ${precip} mm"
-        echo " 積雪の可能性があります。"
-    elif [[ "$category_ja" == "曇り" ]] || [[ "$category_ja" == "晴れ" ]]; then
+        
+        if (( $(echo "$precip < 2.0" | bc -l) )); then
+             if [ "$IS_JP" = true ]; then echo " 強度: バラツキあり/小雨"; else echo " Intensity: Light/Patchy"; fi
+        elif (( $(echo "$precip < 8.0" | bc -l) )); then
+             if [ "$IS_JP" = true ]; then echo " 強度: 通常の雨"; else echo " Intensity: Moderate"; fi
+        else
+             if [ "$IS_JP" = true ]; then echo " 強度: 大雨"; else echo " Intensity: Heavy"; fi
+        fi
+    elif [[ "$category" == "SNOW" ]]; then
+        if [ "$IS_JP" = true ]; then
+            echo " 降水量(水換算): ${precip} mm"
+            echo " 積雪の可能性があります。"
+        else
+            echo " Precip (Liquid): ${precip} mm"
+            echo " Possibility of snow accumulation."
+        fi
+    elif [[ "$category" == "CLOUDY" ]] || [[ "$category" == "SUNNY" ]]; then
          # Usually precip is 0, but check just in case
          if (( $(echo "$precip > 0" | bc -l) )); then
-             echo " 降水量: ${precip} mm (通り雨の可能性)"
+             if [ "$IS_JP" = true ]; then
+                 echo " 降水量: ${precip} mm (通り雨の可能性)"
+             else
+                 echo " Precip: ${precip} mm (Possible showers)"
+             fi
          else
-             echo " 降水量: 0.0 mm"
+             if [ "$IS_JP" = true ]; then
+                 echo " 降水量: 0.0 mm"
+             else
+                 echo " Precip: 0.0 mm"
+             fi
          fi
     fi 
 
@@ -296,7 +405,12 @@ cleanup() {
     else
         echo -ne "\033[?25h"
     fi
-    echo -e "\nプログラムを終了します。"
+    echo ""
+    if [ "$IS_JP" = true ]; then
+        echo "プログラムを終了します。"
+    else
+        echo "Exiting program."
+    fi
     exit 0
 }
 
@@ -307,28 +421,44 @@ show_banner
 
 while true; do
     # Show loading status
-    echo "天気情報を取得中..."
+    if [ "$IS_JP" = true ]; then
+        echo "天気情報を取得中..."
+    else
+        echo "Fetching weather info..."
+    fi
     
     DATA=$(curl -s --max-time 10 "$WEATHER_URL")
     
-    # Validate if we got JSON
     # Validate if we got JSON and check for parse errors
     if [[ -z "$DATA" ]] || [[ "${DATA:0:1}" != "{" ]] || ! echo "$DATA" | jq empty > /dev/null 2>&1; then
         echo -ne "\033[2J\033[H"
-        echo "データの取得に失敗、またはデータが破損しています"
-        echo "再試行まで待機中... (1秒)"
+        if [ "$IS_JP" = true ]; then
+            echo "データの取得に失敗、またはデータが破損しています"
+            echo "再試行まで待機中... (1秒)"
+        else
+            echo "Failed to retrieve data or data is corrupted."
+            echo "Waiting to retry... (1s)"
+        fi
         sleep 1
     else
         echo -ne "\033[2J\033[H"
         process_weather "$DATA"
         echo ""
-        echo "最終更新: $(date '+%H:%M:%S')"
+        if [ "$IS_JP" = true ]; then
+            echo "最終更新: $(date '+%H:%M:%S')"
+        else
+            echo "Last Update: $(date '+%H:%M:%S')"
+        fi
         
         if [ "$ONCE" = true ]; then
             exit 0
         fi
 
-        echo "(終了: Ctrl+C)"
+        if [ "$IS_JP" = true ]; then
+            echo "(終了: Ctrl+C)"
+        else
+            echo "(Exit: Ctrl+C)"
+        fi
         sleep "$INTERVAL"
     fi
 done
