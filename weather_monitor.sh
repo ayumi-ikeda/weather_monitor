@@ -4,7 +4,7 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="1.3.0"
+VERSION="1.3.1"
 INTERVAL=0
 ONCE=false
 
