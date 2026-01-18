@@ -279,11 +279,11 @@ EOF
 
 function draw_sunny() {
     cat << EOF
-       \   /
+       \\   /
        .-.       [ $TXT_LBL_SUNNY ]
     -- (   ) --
        \`-’
-       /   \
+       /   \\
 EOF
 }
 
