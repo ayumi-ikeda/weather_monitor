@@ -4,7 +4,7 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="1.3.2"
+VERSION="1.3.3"
 INTERVAL=0
 ONCE=false
 
@@ -81,7 +81,7 @@ if [[ "${LANG:-}" == ja* ]]; then
     URL_WTTR="https://wttr.in/?format=j1&lang=ja"
     
     # Units (explicitly defined for flexibility)
-    UNIT_TEMP="℃"
+    UNIT_TEMP="°C"
     UNIT_PRECIP="mm"
     UNIT_WIND="km/h"
     UNIT_PRESSURE="hPa"
@@ -155,7 +155,7 @@ else
     URL_WTTR="https://wttr.in/?format=j1&lang=en"
 
     # Units
-    UNIT_TEMP="C"
+    UNIT_TEMP="°C"
     UNIT_PRECIP="mm"
     UNIT_WIND="km/h"
     UNIT_PRESSURE="hPa"
