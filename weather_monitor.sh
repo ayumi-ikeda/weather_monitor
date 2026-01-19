@@ -4,7 +4,7 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="1.3.3"
+VERSION="1.3.4"
 INTERVAL=0
 ONCE=false
 
@@ -453,13 +453,13 @@ fi
 
 # Cleanup on exit
 cleanup() {
+    trap - EXIT SIGINT SIGTERM
     if command -v tput &> /dev/null; then
         tput cnorm
     else
         echo -ne "\033[?25h"
     fi
     echo ""
-    echo "$TXT_EXIT_MSG"
     exit 0
 }
 
