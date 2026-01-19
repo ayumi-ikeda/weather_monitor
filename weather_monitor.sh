@@ -4,7 +4,7 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="1.3.1"
+VERSION="1.3.2"
 INTERVAL=0
 ONCE=false
 
@@ -463,7 +463,7 @@ cleanup() {
     exit 0
 }
 
-trap cleanup SIGINT
+trap cleanup EXIT SIGINT SIGTERM
 
 # Show startup banner
 show_banner
