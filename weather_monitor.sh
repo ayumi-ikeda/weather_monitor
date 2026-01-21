@@ -4,9 +4,10 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="1.3.4"
+VERSION="2.0.0"
 INTERVAL=0
 ONCE=false
+FORECAST=false
 
 # -----------------------------------------------------------------------------
 # Localization / Strings
@@ -21,6 +22,7 @@ if [[ "${LANG:-}" == ja* ]]; then
     TXT_OPT_HEADER="オプション:"
     TXT_OPT_I="  -i, --interval SECONDS   更新間隔（秒）。必須項目です（--once 指定時は不要）。"
     TXT_OPT_O="  -o, --once               1回だけ表示して終了します（エラー時はリトライします）。"
+    TXT_OPT_F="  -f, --forecast           8時間先までの予報を確認します（--onceと同様に終了します）。"
     TXT_OPT_H="  -h, --help               このヘルプを表示して終了します。"
     TXT_OPT_V="  -v, --version            バージョン情報を表示して終了します。"
     TXT_USAGE_EX="例:"
@@ -76,6 +78,13 @@ if [[ "${LANG:-}" == ja* ]]; then
     TXT_WARN_RAIN="激しい雨が降っています"
     TXT_WARN_WIND="強風が吹いています"
     TXT_WARN_UPDATE="最新の気象情報に注意してください。"
+
+    # Forecast
+    TXT_FC_TITLE="[予報]"
+    TXT_FC_RAIN="%d時間後に雨になります。"
+    TXT_FC_NO_RAIN_CLOUDY="%d時間後に雨はやみます。曇るでしょう。"
+    TXT_FC_NO_RAIN_SUNNY="%d時間後に雨はやみます。晴れるでしょう。"
+    TXT_FC_GENERIC="%d時間後に%sになります。"
     
     # Logic
     URL_WTTR="https://wttr.in/?format=j1&lang=ja"
@@ -95,6 +104,7 @@ else
     TXT_OPT_HEADER="Options:"
     TXT_OPT_I="  -i, --interval SECONDS   Update interval in seconds. Required (unless --once is used)."
     TXT_OPT_O="  -o, --once               Display once and exit (retry on error)."
+    TXT_OPT_F="  -f, --forecast           Check forecast for next 8 hours (behaves like --once)."
     TXT_OPT_H="  -h, --help               Display this help and exit."
     TXT_OPT_V="  -v, --version            Display version information and exit."
     TXT_USAGE_EX="Example:"
@@ -150,6 +160,13 @@ else
     TXT_WARN_RAIN="Heavy rain"
     TXT_WARN_WIND="Strong wind"
     TXT_WARN_UPDATE="Please stay updated with the latest weather info."
+
+    # Forecast
+    TXT_FC_TITLE="[Forecast]"
+    TXT_FC_RAIN="It will rain in %d hours."
+    TXT_FC_NO_RAIN_CLOUDY="Rain will stop in %d hours. It will be cloudy."
+    TXT_FC_NO_RAIN_SUNNY="Rain will stop in %d hours. It will be sunny."
+    TXT_FC_GENERIC="It will be %s in %d hours."
     
     # Logic
     URL_WTTR="https://wttr.in/?format=j1&lang=en"
@@ -174,6 +191,7 @@ function show_help() {
     echo "$TXT_OPT_HEADER"
     echo "$TXT_OPT_I"
     echo "$TXT_OPT_O"
+    echo "$TXT_OPT_F"
     echo "$TXT_OPT_H"
     echo "$TXT_OPT_V"
     echo ""
@@ -217,6 +235,11 @@ while [[ $# -gt 0 ]]; do
             fi
             ;;
         -o|--once)
+            ONCE=true
+            shift
+            ;;
+        -f|--forecast)
+            FORECAST=true
             ONCE=true
             shift
             ;;
@@ -319,6 +342,75 @@ EOF
 # Weather Logic
 # -----------------------------------------------------------------------------
 
+function get_category_key() {
+    local desc_lower=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    if [[ "$desc_lower" =~ "sun" ]] || [[ "$desc_lower" =~ "clear" ]]; then
+        echo "SUNNY"
+    elif [[ "$desc_lower" =~ "snow" ]] || [[ "$desc_lower" =~ "ice" ]] || [[ "$desc_lower" =~ "blizzard" ]] || [[ "$desc_lower" =~ "sleet" ]]; then
+        echo "SNOW"
+    elif [[ "$desc_lower" =~ "rain" ]] || [[ "$desc_lower" =~ "drizzle" ]] || [[ "$desc_lower" =~ "shower" ]] || [[ "$desc_lower" =~ "thunder" ]]; then
+        echo "RAIN"
+    else
+        echo "CLOUDY"
+    fi
+}
+
+function check_forecast_change() {
+    local json="$1"
+    local current_cat="$2"
+    
+    local start_hour=$((10#$(date +%H)))
+    
+    for offset in {1..8}; do
+        local check_hour=$((start_hour + offset))
+        local day_offset=$((check_hour / 24))
+        local hour_of_day=$((check_hour % 24))
+        
+        # 3-hour block index
+        local block_idx=$((hour_of_day / 3))
+        # time string for jq (0, 300, 600...)
+        local time_str=$((block_idx * 300))
+        
+        local target_desc=$(echo "$json" | jq -r ".weather[$day_offset].hourly[] | select(.time == \"$time_str\") | .weatherDesc[0].value" 2>/dev/null | head -n 1)
+        
+        if [ -z "$target_desc" ]; then continue; fi
+        
+        local target_cat=$(get_category_key "$target_desc")
+        
+        if [ "$target_cat" != "$current_cat" ]; then
+             echo "$TXT_FC_TITLE"
+             
+             if [ "$target_cat" == "RAIN" ]; then
+                 printf "$TXT_FC_RAIN\n" "$offset"
+             elif [ "$current_cat" == "RAIN" ]; then
+                  if [ "$target_cat" == "CLOUDY" ]; then
+                      printf "$TXT_FC_NO_RAIN_CLOUDY\n" "$offset"
+                  elif [ "$target_cat" == "SUNNY" ]; then
+                      printf "$TXT_FC_NO_RAIN_SUNNY\n" "$offset"
+                  else
+                      local label_local=""
+                      case "$target_cat" in
+                          SUNNY) label_local="$TXT_CAT_SUNNY" ;;
+                          CLOUDY) label_local="$TXT_CAT_CLOUDY" ;;
+                          SNOW) label_local="$TXT_CAT_SNOW" ;;
+                      esac
+                       printf "$TXT_FC_GENERIC\n" "$offset" "$label_local"
+                  fi
+             else
+                  local label_local=""
+                  case "$target_cat" in
+                      SUNNY) label_local="$TXT_CAT_SUNNY" ;;
+                      CLOUDY) label_local="$TXT_CAT_CLOUDY" ;;
+                      SNOW) label_local="$TXT_CAT_SNOW" ;;
+                      RAIN) label_local="$TXT_CAT_RAIN" ;;
+                  esac
+                  printf "$TXT_FC_GENERIC\n" "$offset" "$label_local"
+             fi
+             return 0
+        fi
+    done
+}
+
 # Function to check and display warnings in RED
 function check_warnings() {
     local desc="$1"
@@ -378,21 +470,18 @@ function process_weather() {
     local pressure=$(echo "$current" | jq -r '.pressure')
     
     # Determine Category
-    local desc_lower=$(echo "$desc_en" | tr '[:upper:]' '[:lower:]')
-    local category=""
+    # Use helper
+    local category=$(get_category_key "$desc_en")
     local category_label=""
     
-    if [[ "$desc_lower" =~ "sun" ]] || [[ "$desc_lower" =~ "clear" ]]; then
+    if [ "$category" == "SUNNY" ]; then
         draw_sunny
-        category="SUNNY"
         category_label="$TXT_CAT_SUNNY"
-    elif [[ "$desc_lower" =~ "snow" ]] || [[ "$desc_lower" =~ "ice" ]] || [[ "$desc_lower" =~ "blizzard" ]] || [[ "$desc_lower" =~ "sleet" ]]; then
+    elif [ "$category" == "SNOW" ]; then
         draw_snowy
-        category="SNOW"
         category_label="$TXT_CAT_SNOW"
-    elif [[ "$desc_lower" =~ "rain" ]] || [[ "$desc_lower" =~ "drizzle" ]] || [[ "$desc_lower" =~ "shower" ]] || [[ "$desc_lower" =~ "thunder" ]]; then
+    elif [ "$category" == "RAIN" ]; then
         draw_rainy
-        category="RAIN"
         category_label="$TXT_CAT_RAIN"
     else
         # Default fallback for Cloudy, Mist, Fog, Overcast
@@ -438,6 +527,10 @@ function process_weather() {
     
     # Check for warnings
     check_warnings "$desc_en" "$precip" "$wind"
+
+    if [ "$FORECAST" = true ]; then
+        check_forecast_change "$json" "$category"
+    fi
 }
 
 # -----------------------------------------------------------------------------

@@ -8,6 +8,7 @@ ASCIIアートを使用して天気を表示し、指定した更新間隔で[wt
 - **ASCIIアート表示**: 晴れ、曇り、雨、雪などの天気を視覚的なアスキーアートで表示します。
 - **詳細情報**: 気温、湿度、風速、気圧、降水量などの詳細な気象データを表示します。
 - **警報・注意報**: 激しい雨や強風、荒天（雷雨、吹雪など）を検知すると、赤字で警告メッセージを表示します。
+- **予報モード**: 8時間先までの予報を解析し、天気の変化（いつ雨が降り始めるか、いつ止むかなど）を通知します。
 - **自動更新**: ユーザーが指定した間隔（秒）で情報を定期的に更新します。
 - **多言語対応**: システムの言語設定 (`LANG`) に応じて、日本語と英語の表示を自動的に切り替えます。
 
@@ -57,6 +58,7 @@ chmod +x weather_monitor.sh
 | :--- | :--- |
 | `-i, --interval SECONDS` | **[必須]** 天気情報の更新間隔を秒単位で指定します。 |
 | `-o, --once` | 一度だけ表示して終了します。 |
+| `-f, --forecast` | 8時間先までの予報を確認し、一度だけ表示して終了します。 |
 | `-h, --help` | ヘルプメッセージを表示して終了します。 |
 | `-v, --version` | バージョン情報を表示して終了します。 |
 
@@ -98,6 +100,7 @@ It uses ASCII art to display weather conditions and fetches updates from [wttr.i
 - **ASCII Art Display**: Visual representation of weather (Sunny, Cloudy, Rain, Snow, etc.).
 - **Detailed Information**: Displays temperature, humidity, wind speed, pressure, precipitation, and more.
 - **Warnings/Alerts**: Displays warnings in red for heavy rain, strong winds, or severe weather (storms, blizzards).
+- **Forecast Mode**: Analyzes forecast for the next 8 hours and notifies of weather changes (e.g., when rain starts/stops).
 - **Auto Update**: Regularly updates information at user-defined intervals (in seconds).
 - **Multi-language Support**: Automatically switches between Japanese and English based on your system language (`LANG`).
 
@@ -147,6 +150,7 @@ To exit, press `Ctrl+C`.
 | :--- | :--- |
 | `-i, --interval SECONDS` | **[Required]** Update interval in seconds. |
 | `-o, --once` | Display once and exit. |
+| `-f, --forecast` | Check forecast for next 8 hours and exit. |
 | `-h, --help` | Display help message. |
 | `-v, --version` | Display version information. |
 
