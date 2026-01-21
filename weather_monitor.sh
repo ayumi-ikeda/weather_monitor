@@ -4,7 +4,7 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="2.0.0"
+VERSION="2.0.1"
 INTERVAL=0
 ONCE=false
 FORECAST=false
@@ -82,6 +82,7 @@ if [[ "${LANG:-}" == ja* ]]; then
     # Forecast
     TXT_FC_TITLE="[予報]"
     TXT_FC_RAIN="%d時間後に雨になります。"
+    TXT_FC_SNOW="%d時間後に雪になります。"
     TXT_FC_NO_RAIN_CLOUDY="%d時間後に雨はやみます。曇るでしょう。"
     TXT_FC_NO_RAIN_SUNNY="%d時間後に雨はやみます。晴れるでしょう。"
     TXT_FC_GENERIC="%d時間後に%sになります。"
@@ -164,6 +165,7 @@ else
     # Forecast
     TXT_FC_TITLE="[Forecast]"
     TXT_FC_RAIN="It will rain in %d hours."
+    TXT_FC_SNOW="It will snow in %d hours."
     TXT_FC_NO_RAIN_CLOUDY="Rain will stop in %d hours. It will be cloudy."
     TXT_FC_NO_RAIN_SUNNY="Rain will stop in %d hours. It will be sunny."
     TXT_FC_GENERIC="It will be %s in %d hours."
@@ -344,15 +346,34 @@ EOF
 
 function get_category_key() {
     local desc_lower=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    local chance_rain="${2:-0}"
+    local chance_snow="${3:-0}"
+
+    # Priority 1: High chance of snow
+    if (( 10#${chance_snow} > 50 )) || (( 10#${chance_snow} > 10#${chance_rain} )); then
+        echo "SNOW"
+        return
+    fi
+    
+    # Priority 2: Keywords (SNOW)
+    if [[ "$desc_lower" =~ "snow" ]] || [[ "$desc_lower" =~ "ice" ]] || [[ "$desc_lower" =~ "blizzard" ]] || [[ "$desc_lower" =~ "sleet" ]] || [[ "$desc_lower" =~ "freezing" ]]; then
+        echo "SNOW"
+        return
+    fi
+
+    # Priority 3: Keywords (SUNNY)
     if [[ "$desc_lower" =~ "sun" ]] || [[ "$desc_lower" =~ "clear" ]]; then
         echo "SUNNY"
-    elif [[ "$desc_lower" =~ "snow" ]] || [[ "$desc_lower" =~ "ice" ]] || [[ "$desc_lower" =~ "blizzard" ]] || [[ "$desc_lower" =~ "sleet" ]]; then
-        echo "SNOW"
-    elif [[ "$desc_lower" =~ "rain" ]] || [[ "$desc_lower" =~ "drizzle" ]] || [[ "$desc_lower" =~ "shower" ]] || [[ "$desc_lower" =~ "thunder" ]]; then
-        echo "RAIN"
-    else
-        echo "CLOUDY"
+        return
     fi
+    
+    # Priority 4: Keywords (RAIN)
+    if [[ "$desc_lower" =~ "rain" ]] || [[ "$desc_lower" =~ "drizzle" ]] || [[ "$desc_lower" =~ "shower" ]] || [[ "$desc_lower" =~ "thunder" ]]; then
+        echo "RAIN"
+        return
+    fi
+
+    echo "CLOUDY"
 }
 
 function check_forecast_change() {
@@ -371,17 +392,22 @@ function check_forecast_change() {
         # time string for jq (0, 300, 600...)
         local time_str=$((block_idx * 300))
         
-        local target_desc=$(echo "$json" | jq -r ".weather[$day_offset].hourly[] | select(.time == \"$time_str\") | .weatherDesc[0].value" 2>/dev/null | head -n 1)
+        local target_hourly=$(echo "$json" | jq -c ".weather[$day_offset].hourly[] | select(.time == \"$time_str\")" 2>/dev/null | head -n 1)
+        if [ -z "$target_hourly" ] || [ "$target_hourly" == "null" ]; then continue; fi
         
-        if [ -z "$target_desc" ]; then continue; fi
+        local target_desc=$(echo "$target_hourly" | jq -r ".weatherDesc[0].value")
+        local t_snow=$(echo "$target_hourly" | jq -r ".chanceofsnow // 0")
+        local t_rain=$(echo "$target_hourly" | jq -r ".chanceofrain // 0")
         
-        local target_cat=$(get_category_key "$target_desc")
+        local target_cat=$(get_category_key "$target_desc" "$t_rain" "$t_snow")
         
         if [ "$target_cat" != "$current_cat" ]; then
              echo "$TXT_FC_TITLE"
              
              if [ "$target_cat" == "RAIN" ]; then
                  printf "$TXT_FC_RAIN\n" "$offset"
+             elif [ "$target_cat" == "SNOW" ]; then
+                 printf "$TXT_FC_SNOW\n" "$offset"
              elif [ "$current_cat" == "RAIN" ]; then
                   if [ "$target_cat" == "CLOUDY" ]; then
                       printf "$TXT_FC_NO_RAIN_CLOUDY\n" "$offset"
@@ -470,8 +496,16 @@ function process_weather() {
     local pressure=$(echo "$current" | jq -r '.pressure')
     
     # Determine Category
-    # Use helper
-    local category=$(get_category_key "$desc_en")
+    # Use current hourly block for chances if available
+    local start_hour=$((10#$(date +%H)))
+    local block_idx=$((start_hour / 3))
+    local time_str=$((block_idx * 300))
+    local current_hourly=$(echo "$json" | jq -c ".weather[0].hourly[] | select(.time == \"$time_str\")" 2>/dev/null | head -n 1)
+    
+    local c_snow=$(echo "$current_hourly" | jq -r ".chanceofsnow // 0")
+    local c_rain=$(echo "$current_hourly" | jq -r ".chanceofrain // 0")
+    
+    local category=$(get_category_key "$desc_en" "$c_rain" "$c_snow")
     local category_label=""
     
     if [ "$category" == "SUNNY" ]; then
