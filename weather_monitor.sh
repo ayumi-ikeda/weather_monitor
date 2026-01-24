@@ -4,7 +4,7 @@
 # Weather Monitor CLI (Bash)
 # =============================================================================
 
-VERSION="2.0.1"
+VERSION="2.0.3"
 INTERVAL=0
 ONCE=false
 FORECAST=false
@@ -610,12 +610,12 @@ while true; do
     else
         echo -ne "\033[2J\033[H"
         process_weather "$DATA"
-        echo ""
-        echo "$TXT_LAST_UPDATE: $(date '+%H:%M:%S')"
-        
         if [ "$ONCE" = true ]; then
             exit 0
         fi
+
+        echo ""
+        echo "$TXT_LAST_UPDATE: $(date '+%H:%M:%S')"
 
         echo "$TXT_EXIT_HINT"
         sleep "$INTERVAL"
