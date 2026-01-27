@@ -2,6 +2,7 @@
 
 ターミナル上で動作する、シンプルで視覚的な天気情報モニターです。
 ASCIIアートを使用して天気を表示し、指定した更新間隔で[wttr.in](https://wttr.in)から最新の天気情報を取得・更新します。
+**Version 3.0.0 より Python 製になりました。**
 
 ## 機能
 
@@ -14,19 +15,10 @@ ASCIIアートを使用して天気を表示し、指定した更新間隔で[wt
 
 ## 動作環境
 
-以下のコマンドがシステムにインストールされている必要があります。
+- `python3` (3.6以上推奨)
+- 標準ライブラリのみ使用 (`urllib`, `json`, `argparse` 等)
 
-- `bash` (4.0以上推奨)
-- `curl` (データ取得用)
-- `jq` (JSON解析用)
-- `bc` (数値計算用)
-
-**インストール確認（Ubuntu/Debian系）:**
-
-```bash
-sudo apt update
-sudo apt install curl jq bc
-```
+※ 以前のバージョンで必要だった `curl`, `jq`, `bc` は不要です。
 
 ## 使用方法
 
@@ -35,7 +27,7 @@ sudo apt install curl jq bc
 ### 1. 実行権限の付与
 
 ```bash
-chmod +x weather_monitor.sh
+chmod +x weather_monitor.py
 ```
 
 ### 2. プログラムの実行
@@ -44,10 +36,13 @@ chmod +x weather_monitor.sh
 
 ```bash
 # 例: 60秒ごとに更新
-./weather_monitor.sh --interval 60
+./weather_monitor.py --interval 60
 
 # 短縮形 (-i) も使用可能
-./weather_monitor.sh -i 300
+./weather_monitor.py -i 300
+
+# python3 コマンド経由でも実行可能
+python3 weather_monitor.py -i 60
 ```
 
 終了するには `Ctrl+C` を押してください。
@@ -56,7 +51,7 @@ chmod +x weather_monitor.sh
 
 | オプション | 説明 |
 | :--- | :--- |
-| `-i, --interval SECONDS` | **[必須]** 天気情報の更新間隔を秒単位で指定します。 |
+| `-i, --interval SECONDS` | **[必須]** 天気情報の更新間隔を秒単位で指定します（`--once` 指定時は不要）。 |
 | `-o, --once` | 一度だけ表示して終了します。 |
 | `-f, --forecast` | 8時間先までの予報を確認し、一度だけ表示して終了します。 |
 | `-h, --help` | ヘルプメッセージを表示して終了します。 |
@@ -94,6 +89,7 @@ LICENSEファイルを参照してください。
 
 A simple, visual weather information monitor for the terminal.
 It uses ASCII art to display weather conditions and fetches updates from [wttr.in](https://wttr.in) at specified intervals.
+**Rewritten in Python as of Version 3.0.0.**
 
 ## Features
 
@@ -106,19 +102,8 @@ It uses ASCII art to display weather conditions and fetches updates from [wttr.i
 
 ## Requirements
 
-The following commands must be installed:
-
-- `bash` (4.0+ recommended)
-- `curl` (for data fetching)
-- `jq` (for JSON parsing)
-- `bc` (for calculations)
-
-**Installation (Ubuntu/Debian):**
-
-```bash
-sudo apt update
-sudo apt install curl jq bc
-```
+- `python3` (3.6+ recommended)
+- Uses standard libraries only.
 
 ## Usage
 
@@ -127,7 +112,7 @@ Make sure to give execution permission to the script.
 ### 1. Grant Permission
 
 ```bash
-chmod +x weather_monitor.sh
+chmod +x weather_monitor.py
 ```
 
 ### 2. Run Program
@@ -136,10 +121,10 @@ Specify the update interval (in seconds) using `--interval`.
 
 ```bash
 # Example: Update every 60 seconds
-./weather_monitor.sh --interval 60
+./weather_monitor.py --interval 60
 
 # Short form (-i)
-./weather_monitor.sh -i 300
+./weather_monitor.py -i 300
 ```
 
 To exit, press `Ctrl+C`.
@@ -148,7 +133,7 @@ To exit, press `Ctrl+C`.
 
 | Option | Description |
 | :--- | :--- |
-| `-i, --interval SECONDS` | **[Required]** Update interval in seconds. |
+| `-i, --interval SECONDS` | **[Required]** Update interval in seconds (not required with `--once`). |
 | `-o, --once` | Display once and exit. |
 | `-f, --forecast` | Check forecast for next 8 hours and exit. |
 | `-h, --help` | Display help message. |
