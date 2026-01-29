@@ -24,7 +24,7 @@ except ImportError:
 # Weather Monitor CLI & GUI (Python Port)
 # =============================================================================
 
-VERSION = "3.2.0"
+VERSION = "3.3.0"
 
 # -----------------------------------------------------------------------------
 # ASCII Art & Constants
@@ -89,6 +89,7 @@ class Strings:
             self.opt_o = "  -o, --once               1回だけ表示して終了します（エラー時はリトライします）。"
             self.opt_f = "  -f, --forecast           8時間先までの予報を確認します（--onceと同様に終了します）。"
             self.opt_g = "  -g, --gui                GUIモードで起動します（更新間隔は10分固定）。"
+            self.opt_y = "  -y, --background         GUIモードをバックグラウンドで起動します（-g 指定時のみ有効）。"
             self.opt_h = "  -h, --help               このヘルプを表示して終了します。"
             self.opt_v = "  -v, --version            バージョン情報を表示して終了します。"
             self.usage_ex = "例:"
@@ -148,6 +149,8 @@ class Strings:
             self.fc_no_rain_sunny = "{}時間後に雨はやみます。晴れるでしょう。"
             self.fc_generic = "{}時間後に{}になります。"
             
+            self.err_y_only_g = "エラー: -y/--background オプションは -g/--gui と併用する場合のみ有効です。"
+            
             self.url_wttr = "https://wttr.in/?format=j1&lang=ja"
         else:
             self.is_jp = False
@@ -158,6 +161,7 @@ class Strings:
             self.opt_o = "  -o, --once               Display once and exit (retry on error)."
             self.opt_f = "  -f, --forecast           Check forecast for next 8 hours (behaves like --once)."
             self.opt_g = "  -g, --gui                Launch in GUI mode (fixed 10 min interval)."
+            self.opt_y = "  -y, --background         Launch GUI in background (only with -g)."
             self.opt_h = "  -h, --help               Display this help and exit."
             self.opt_v = "  -v, --version            Display version information and exit."
             self.usage_ex = "Example:"
@@ -216,6 +220,8 @@ class Strings:
             self.fc_no_rain_cloudy = "Rain will stop in {} hours. It will be cloudy."
             self.fc_no_rain_sunny = "Rain will stop in {} hours. It will be sunny."
             self.fc_generic = "It will be {} in {} hours."
+            
+            self.err_y_only_g = "Error: -y/--background option can only be used with -g/--gui."
             
             self.url_wttr = "https://wttr.in/?format=j1&lang=en"
 
@@ -617,6 +623,7 @@ class WeatherApp:
         self.once = False
         self.forecast = False
         self.gui = False
+        self.background = False
         
         self.setup_signal_handlers()
 
@@ -631,6 +638,7 @@ class WeatherApp:
         print(self.strings.opt_o)
         print(self.strings.opt_f)
         print(self.strings.opt_g)
+        print(self.strings.opt_y)
         print(self.strings.opt_h)
         print(self.strings.opt_v)
         print("")
@@ -650,6 +658,7 @@ class WeatherApp:
         parser.add_argument('-o', '--once', action='store_true')
         parser.add_argument('-f', '--forecast', action='store_true')
         parser.add_argument('-g', '--gui', action='store_true')
+        parser.add_argument('-y', '--background', action='store_true')
         parser.add_argument('-h', '--help', action='store_true')
         parser.add_argument('-v', '--version', action='store_true')
         
@@ -675,6 +684,7 @@ class WeatherApp:
         self.once = args.once
         self.forecast = args.forecast
         self.gui = args.gui
+        self.background = args.background
 
         if self.forecast:
             self.once = True
@@ -683,6 +693,10 @@ class WeatherApp:
         if self.gui:
             # GUI mode defaults
             pass
+            
+        if self.background and not self.gui:
+            print(self.strings.err_y_only_g)
+            sys.exit(1)
         elif not self.once and self.interval == 0:
             print(self.strings.err_no_interval)
             print(self.strings.use_h)
@@ -737,6 +751,20 @@ class WeatherApp:
             if not HAS_TKINTER:
                 print(self.strings.err_gui_no_tk)
                 sys.exit(1)
+                
+            if self.background:
+                try:
+                    pid = os.fork()
+                    if pid > 0:
+                        # Parent process
+                        return
+                    os.setsid()
+                except AttributeError:
+                    # Windows
+                    pass
+                except Exception as e:
+                    print(f"Background error: {e}")
+
             gui = WeatherGUI(self.strings, self.logic)
             gui.run()
             return
