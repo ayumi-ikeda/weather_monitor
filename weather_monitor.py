@@ -24,7 +24,7 @@ except ImportError:
 # Weather Monitor CLI & GUI (Python Port)
 # =============================================================================
 
-VERSION = "3.4.0"
+VERSION = "3.4.1"
 
 # -----------------------------------------------------------------------------
 # ASCII Art & Constants
@@ -220,7 +220,7 @@ class Strings:
             self.fc_snow = "It will snow in {} hours."
             self.fc_no_rain_cloudy = "Rain will stop in {} hours. It will be cloudy."
             self.fc_no_rain_sunny = "Rain will stop in {} hours. It will be sunny."
-            self.fc_generic = "It will be {} in {} hours."
+            self.fc_generic = "It will be {1} in {0} hours."
             
             self.lbl_always_on_top = "Always on Top"
             self.err_y_only_g = "Error: -y/--background option can only be used with -g/--gui."

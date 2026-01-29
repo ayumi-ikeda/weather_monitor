@@ -178,7 +178,7 @@ To exit, press `Ctrl+C`.
 
 When launched with the `-g` option, a graphical window is displayed. You can toggle "Always on Top" from the right-click menu.
 
-![GUI Mode](screenshots/gui_mode.png)
+![GUI Mode](screenshots/gui_mode_en.png)
 
 ## License
 
