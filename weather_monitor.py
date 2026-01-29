@@ -24,7 +24,7 @@ except ImportError:
 # Weather Monitor CLI & GUI (Python Port)
 # =============================================================================
 
-VERSION = "3.3.0"
+VERSION = "3.3.1"
 
 # -----------------------------------------------------------------------------
 # ASCII Art & Constants
@@ -690,29 +690,18 @@ class WeatherApp:
             self.once = True
             
         # Validation
-        if self.gui:
-            # GUI mode defaults
-            pass
-            
         if self.background and not self.gui:
             print(self.strings.err_y_only_g)
             sys.exit(1)
-        elif not self.once and self.interval == 0:
-            print(self.strings.err_no_interval)
-            print(self.strings.use_h)
-            sys.exit(1)
-            
-        if self.interval < 0:
-             pass 
 
-        if not self.once and not self.gui and self.interval <= 0:
+        if not self.once and not self.gui:
             if self.interval == 0:
                 print(self.strings.err_no_interval)
                 print(self.strings.use_h)
                 sys.exit(1)
-            else:
-                 print(self.strings.err_int_pos)
-                 sys.exit(1)
+            elif self.interval < 0:
+                print(self.strings.err_int_pos)
+                sys.exit(1)
 
     def setup_signal_handlers(self):
         signal.signal(signal.SIGINT, self.cleanup)
