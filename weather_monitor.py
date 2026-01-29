@@ -24,7 +24,7 @@ except ImportError:
 # Weather Monitor CLI & GUI (Python Port)
 # =============================================================================
 
-VERSION = "3.1.0"
+VERSION = "3.2.0"
 
 # -----------------------------------------------------------------------------
 # ASCII Art & Constants
@@ -463,7 +463,7 @@ class WeatherGUI:
         
         self.root = tk.Tk()
         self.root.title("Weather Monitor")
-        self.root.geometry("400x550")
+        self.root.geometry("400x600")
         self.root.configure(bg="#222222")
         
         self.setup_ui()
@@ -519,6 +519,13 @@ class WeatherGUI:
         
         self.lbl_precip = tk.Label(self.details_frame, text="Precip: --", font=font_med, bg=style_bg, fg=style_fg)
         self.lbl_precip.pack()
+
+        # Forecast Frame
+        self.forecast_frame = tk.Frame(self.main_frame, bg=style_bg, pady=10)
+        self.forecast_frame.pack(fill='x')
+        
+        self.lbl_forecast = tk.Label(self.forecast_frame, text="", font=font_med, bg=style_bg, fg="#00ff00", wraplength=350)
+        self.lbl_forecast.pack()
 
         # Footer Container (Status and Update Info)
         self.footer_frame = tk.Frame(self.main_frame, bg=style_bg)
@@ -577,6 +584,13 @@ class WeatherGUI:
         p_text = info['precip_info'][0] if info['precip_info'] else ""
         self.lbl_precip.config(text=p_text)
         
+        # Forecast
+        if info['forecast']:
+            fc_text = "\n".join(info['forecast'])
+            self.lbl_forecast.config(text=fc_text)
+        else:
+            self.lbl_forecast.config(text="")
+
         # Warnings (Overlay or change color)
         if info['warnings']:
             self.lbl_status.config(text=" | ".join(info['warnings']), fg="#ff5555")
