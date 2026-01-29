@@ -24,7 +24,7 @@ except ImportError:
 # Weather Monitor CLI & GUI (Python Port)
 # =============================================================================
 
-VERSION = "3.3.1"
+VERSION = "3.4.0"
 
 # -----------------------------------------------------------------------------
 # ASCII Art & Constants
@@ -149,6 +149,7 @@ class Strings:
             self.fc_no_rain_sunny = "{}時間後に雨はやみます。晴れるでしょう。"
             self.fc_generic = "{}時間後に{}になります。"
             
+            self.lbl_always_on_top = "常に最前面に表示"
             self.err_y_only_g = "エラー: -y/--background オプションは -g/--gui と併用する場合のみ有効です。"
             
             self.url_wttr = "https://wttr.in/?format=j1&lang=ja"
@@ -221,6 +222,7 @@ class Strings:
             self.fc_no_rain_sunny = "Rain will stop in {} hours. It will be sunny."
             self.fc_generic = "It will be {} in {} hours."
             
+            self.lbl_always_on_top = "Always on Top"
             self.err_y_only_g = "Error: -y/--background option can only be used with -g/--gui."
             
             self.url_wttr = "https://wttr.in/?format=j1&lang=en"
@@ -474,6 +476,9 @@ class WeatherGUI:
         
         self.setup_ui()
         
+        # Always on Top state
+        self.always_on_top = tk.BooleanVar(value=False)
+        
         # Auto Update Interval (10 mins = 600000 ms)
         self.update_interval_ms = 10 * 60 * 1000 
         
@@ -544,6 +549,21 @@ class WeatherGUI:
         # Status / Warnings
         self.lbl_status = tk.Label(self.footer_frame, text=self.strings.fetching, font=font_small, bg=style_bg, fg="#ffff00", wraplength=350, justify='center')
         self.lbl_status.pack(side='bottom', pady=(0, 5), fill='x')
+
+        # Context Menu Binding (Right Click)
+        self.root.bind("<Button-3>", self.show_context_menu)
+        # For macOS (usually Button-2 is right click)
+        self.root.bind("<Button-2>", self.show_context_menu)
+
+    def show_context_menu(self, event):
+        menu = tk.Menu(self.root, tearoff=0)
+        menu.add_checkbutton(label=self.strings.lbl_always_on_top, 
+                             variable=self.always_on_top, 
+                             command=self.toggle_always_on_top)
+        menu.post(event.x_root, event.y_root)
+
+    def toggle_always_on_top(self):
+        self.root.attributes("-topmost", self.always_on_top.get())
 
     def update_data(self):
         def task():
