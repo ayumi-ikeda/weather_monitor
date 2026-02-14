@@ -24,7 +24,7 @@ except ImportError:
 # Weather Monitor CLI & GUI (Python Port)
 # =============================================================================
 
-VERSION = "3.4.1"
+VERSION = "3.4.3"
 
 # -----------------------------------------------------------------------------
 # ASCII Art & Constants
@@ -153,6 +153,7 @@ class Strings:
             self.err_y_only_g = "エラー: -y/--background オプションは -g/--gui と併用する場合のみ有効です。"
             
             self.url_wttr = "https://wttr.in/?format=j1&lang=ja"
+            self.url_location = "https://wttr.in/?format=%l"
         else:
             self.is_jp = False
             self.usage_title = "Usage: {prog} [OPTIONS]"
@@ -226,6 +227,7 @@ class Strings:
             self.err_y_only_g = "Error: -y/--background option can only be used with -g/--gui."
             
             self.url_wttr = "https://wttr.in/?format=j1&lang=en"
+            self.url_location = "https://wttr.in/?format=%l"
 
         self.unit_temp = "°C"
         self.unit_precip = "mm"
@@ -291,9 +293,13 @@ class WeatherLogic:
         nearest_area = json_data.get('nearest_area', [])
         location = ""
         if nearest_area:
-                area_names = nearest_area[0].get('areaName', [])
-                if area_names:
-                    location = area_names[0].get('value', "")
+            area = nearest_area[0]
+            area_names = area.get('areaName', [])
+            if len(area_names) > 1:
+                # 複数のエリア名がある場合、2番目が市町村名（例：Hakodate）であることが多いため、そちらを優先
+                location = area_names[1].get('value', "")
+            elif area_names:
+                location = area_names[0].get('value', "")
         
         desc_list = current.get('weatherDesc', [])
         desc_en = desc_list[0].get('value', "") if desc_list else ""
@@ -570,12 +576,28 @@ class WeatherGUI:
             success = False
             try:
                 self.root.after(0, lambda: self.lbl_status.config(text=self.strings.fetching, fg="#ffff00"))
+                
+                # Fetch Weather Data
                 with urllib.request.urlopen(self.strings.url_wttr, timeout=10) as response:
                     data = response.read()
                     json_data = json.loads(data)
-                    info = self.logic.parse(json_data, forecast_mode=True)
-                    self.root.after(0, lambda: self.refresh_ui(info))
-                    success = True
+                
+                # Fetch Location Name separately (as JSON lacks the city-level name now)
+                location_name = ""
+                try:
+                    with urllib.request.urlopen(self.strings.url_location, timeout=5) as resp:
+                        loc_text = resp.read().decode('utf-8').strip()
+                        # Extract city name (part before the first comma)
+                        location_name = loc_text.split(',')[0].strip()
+                except Exception:
+                    pass
+
+                info = self.logic.parse(json_data, forecast_mode=True)
+                if location_name:
+                    info['location'] = location_name
+
+                self.root.after(0, lambda: self.refresh_ui(info))
+                success = True
             except Exception as e:
                 print(f"Update error: {e}")
                 error_msg = self.strings.err_fetch
@@ -790,9 +812,21 @@ class WeatherApp:
                     data = response.read()
                     json_data = json.loads(data)
                     
+                    # Fetch Location Name separately
+                    location_name = ""
+                    try:
+                        with urllib.request.urlopen(self.strings.url_location, timeout=5) as resp:
+                            loc_text = resp.read().decode('utf-8').strip()
+                            location_name = loc_text.split(',')[0].strip()
+                    except Exception:
+                        pass
+
                     self.clear_screen()
                     
                     info = self.logic.parse(json_data, self.forecast)
+                    if location_name:
+                        info['location'] = location_name
+
                     self.display_cli(info)
                     
                     if self.once:
